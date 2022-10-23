@@ -19,7 +19,18 @@ class BeerController extends Controller
     {
         $beers = $service->getBeers(...$request->validated());
 
-        Excel::store(new BeersExport($params), 'olw-report.xlsx');
+        $filteredBeers = collect($beers)->map(function ($value, $key) {
+            return collect($value)
+                ->only(['name', 'tagline', 'first_brewed', 'description'])
+                ->toArray();
+        })->toArray();
+
+        Excel::store(
+            new BeersExport($filteredBeers),
+            'olw-report.xlsx',
+            's3'
+        );
+
         return 'Relatório criado';
     }
 }
