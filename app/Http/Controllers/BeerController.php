@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Exports\BeersExport;
 use App\Http\Requests\BeerRequest;
+use App\Mail\ExportEmail;
 use App\Services\PunkapiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
 class BeerController extends Controller
@@ -25,11 +27,15 @@ class BeerController extends Controller
                 ->toArray();
         })->toArray();
 
+        $filename = "cervejas-encontradas-" . now()->format('Y-m-d - H_i') . ".xlsx";
+
         Excel::store(
             new BeersExport($filteredBeers),
-            'olw-report.xlsx',
+            $filename,
             's3'
         );
+
+        Mail::to("jeferson_chagas25@hotmail.com")->send(new ExportEmail($filename));
 
         return 'Relatório criado';
     }
