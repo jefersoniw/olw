@@ -31,7 +31,11 @@ Route::get('/dashboard', function () {
 
 require __DIR__ . '/auth.php';
 
-Route::group(['prefix' => '/beers'], function () {
+//ROTAS DO SISTEMA
+Route::group([
+    'prefix' => '/beers',
+    'middleware' => 'auth'
+], function () {
 
     Route::get('/', [BeerController::class, 'index']);
     Route::get('/export', [BeerController::class, 'export']);

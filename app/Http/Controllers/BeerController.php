@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Exports\BeersExport;
 use App\Http\Requests\BeerRequest;
+use App\Jobs\ExportJob;
+use App\Jobs\SendExportEmailJob;
+use App\Jobs\StoreExportDataJob;
 use App\Mail\ExportEmail;
+use App\Models\Export;
 use App\Services\PunkapiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -19,23 +24,13 @@ class BeerController extends Controller
 
     public function export(BeerRequest $request, PunkapiService $service)
     {
-        $beers = $service->getBeers(...$request->validated());
-
-        $filteredBeers = collect($beers)->map(function ($value, $key) {
-            return collect($value)
-                ->only(['name', 'tagline', 'first_brewed', 'description'])
-                ->toArray();
-        })->toArray();
 
         $filename = "cervejas-encontradas-" . now()->format('Y-m-d - H_i') . ".xlsx";
 
-        Excel::store(
-            new BeersExport($filteredBeers),
-            $filename,
-            's3'
-        );
-
-        Mail::to("jeferson_chagas25@hotmail.com")->send(new ExportEmail($filename));
+        ExportJob::withChain([
+            new SendExportEmailJob($filename),
+            new StoreExportDataJob($filename, auth()->user())
+        ])->dispatch($request->validated(), $filename);
 
         return 'Relatório criado';
     }
